@@ -1,0 +1,14 @@
+.git
+.github
+.env
+.env.*
+!.env.example
+vendor
+node_modules
+npm-debug.log
+yarn-error.log
+.phpunit.result.cache
+.phpunit.cache
+.vscode
+.idea
+*.log

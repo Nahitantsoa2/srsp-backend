@@ -20,7 +20,8 @@ fi
 
 # Optimisation du cache Laravel en production si APP_KEY est défini
 if [ -n "$APP_KEY" ]; then
-    echo "==> Optimisation des caches Laravel..."
+    echo "==> Découverte des packages et optimisation des caches Laravel..."
+    php /var/www/artisan package:discover --ansi || true
     php /var/www/artisan config:cache || true
     php /var/www/artisan route:cache || true
     php /var/www/artisan view:cache || true

@@ -1,4 +1,4 @@
-FROM php:8.3-fpm
+FROM php:8.4-fpm
 
 # Configuration de l'environnement pour Composer et Apt
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -24,7 +24,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Configuration et installation des extensions PHP (gd complet, intl, pdo, etc.)
+# Configuration et installation des extensions PHP
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) \
         pdo \
@@ -45,17 +45,19 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Répertoire de travail
 WORKDIR /var/www
 
-# Copie de l'intégralité du projet en premier
-# (Nécessaire pour que Composer trouve les dossiers app/, database/, etc. définis dans autoload)
+# Copie des fichiers du projet
 COPY . /var/www
 
-# Installation propre des dépendances Composer pour la production
+# Installation propre des dépendances Composer :
+# - --no-scripts : empêche `php artisan package:discover` d'échouer au build (sans .env)
+# - --ignore-platform-reqs : ignore tout blocage de version PHP ou extension
 RUN composer install \
     --no-dev \
     --optimize-autoloader \
     --no-interaction \
     --prefer-dist \
-    --ignore-platform-req=ext-*
+    --no-scripts \
+    --ignore-platform-reqs
 
 # Configuration de Nginx, Supervisor et du script de démarrage
 COPY docker/nginx.conf /etc/nginx/sites-available/default

@@ -4,6 +4,16 @@ set -e
 # Configuration du port pour Render ($PORT)
 PORT="${PORT:-10000}"
 export APP_KEY="${APP_KEY:-base64:aYKRvM3bas28yeO65qpEzGcLCI2Q3TbP+ioSvTDRVF0=}"
+
+# Verifie que APP_KEY est valide (Laravel exige 32 octets), sinon en genere une nouvelle
+if ! php -r '
+$key = getenv("APP_KEY");
+$decoded = str_starts_with($key, "base64:") ? base64_decode(substr($key, 7), true) : $key;
+exit(is_string($decoded) && strlen($decoded) === 32 ? 0 : 1);
+'; then
+    echo "==> APP_KEY invalide, generation d'une nouvelle cle..."
+    export APP_KEY="base64:$(php -r 'echo base64_encode(random_bytes(32));')"
+fi
 export LOG_CHANNEL="${LOG_CHANNEL:-stderr}"
 export DB_CONNECTION="${DB_CONNECTION:-pgsql}"
 export CACHE_STORE="${CACHE_STORE:-file}"

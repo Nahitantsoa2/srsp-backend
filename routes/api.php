@@ -4,6 +4,7 @@ use App\Http\Controllers\AgentIaController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\DemandeController;
+use App\Http\Controllers\HealthController;
 use App\Http\Controllers\InformationController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ReclamationController;
@@ -19,6 +20,9 @@ use Illuminate\Support\Facades\Route;
 | Routes publiques (pas d'authentification requise)
 |--------------------------------------------------------------------------
 */
+
+// Etat de sante de l'API et de la base de donnees
+Route::get('/health', [HealthController::class, 'index'])->name('health');
 
 // Connexion et inscription
 Route::post('/login', [AuthController::class, 'login'])

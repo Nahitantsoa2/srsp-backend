@@ -12,7 +12,12 @@ Route::get('/ping', function () {
 });
 
 Route::get('/', function () {
-    return view('welcome');
+    return response()->json([
+        'status' => 'ok',
+        'app' => config('app.name'),
+        'message' => 'API SRSP Assistant IA',
+        'health' => url('/api/health'),
+    ]);
 });
 
 // Route de diagnostic en HTTP 200

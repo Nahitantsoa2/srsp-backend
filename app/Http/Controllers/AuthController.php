@@ -44,8 +44,10 @@ class AuthController extends Controller
             'id_service' => $service->id_service,
         ]);
 
-        $request->session()->regenerate();
-        Auth::guard('web')->login($utilisateur);
+        if ($request->hasSession()) {
+            $request->session()->regenerate();
+            Auth::guard('web')->login($utilisateur);
+        }
 
         $token = $utilisateur->createToken('auth_token')->plainTextToken;
 
@@ -60,13 +62,15 @@ class AuthController extends Controller
     // POST /api/login — authentification par session et token Sanctum
     public function login(LoginRequest $request)
     {
-        if (! Auth::guard('web')->attempt($request->only('email', 'password'))) {
+        $guard = Auth::guard('web');
+
+        if (! $guard->attempt($request->only('email', 'password'))) {
             throw ValidationException::withMessages([
                 'email' => ['Identifiants incorrects.'],
             ]);
         }
 
-        $utilisateur = $request->user();
+        $utilisateur = $guard->user();
 
         // Pour un fonctionnaire : si un matricule (IM) est enregistré sur le
         // compte, l'IM saisi doit correspondre. Si le compte n'a pas encore de
@@ -78,9 +82,12 @@ class AuthController extends Controller
                 $saisi = trim((string) $request->input('matricule'));
 
                 if ($saisi === '' || $saisi !== $enregistre) {
-                    Auth::guard('web')->logout();
-                    $request->session()->invalidate();
-                    $request->session()->regenerateToken();
+                    $guard->logout();
+
+                    if ($request->hasSession()) {
+                        $request->session()->invalidate();
+                        $request->session()->regenerateToken();
+                    }
 
                     throw ValidationException::withMessages([
                         'matricule' => ['IM (matricule) incorrect ou non associé à ce compte.'],
@@ -89,7 +96,9 @@ class AuthController extends Controller
             }
         }
 
-        $request->session()->regenerate();
+        if ($request->hasSession()) {
+            $request->session()->regenerate();
+        }
 
         $token = $utilisateur->createToken('auth_token')->plainTextToken;
 
@@ -111,8 +120,11 @@ class AuthController extends Controller
         }
 
         Auth::guard('web')->logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+
+        if ($request->hasSession()) {
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
 
         return response()->json(['message' => 'Déconnecté avec succès']);
     }

@@ -10,11 +10,25 @@ use Illuminate\Support\Facades\Hash;
 class AdminSeeder extends Seeder
 {
     /**
-     * Crée (ou met à jour) un compte administrateur dédié.
-     *
-     * Identifiants :
-     *   Email    : admin@srsp.mg
-     *   Mot de passe : Admin@2026
+     * Comptes administrateurs créés (ou mis à jour).
+     */
+    private const ADMINS = [
+        [
+            'email' => 'admin@srsp.mg',
+            'nom' => 'Admin',
+            'prenom' => 'SRSP',
+            'password' => 'Admin@2026',
+        ],
+        [
+            'email' => 'adminsrsp@srsp.mg',
+            'nom' => 'Admin',
+            'prenom' => 'SRSP',
+            'password' => 'Admin@2026',
+        ],
+    ];
+
+    /**
+     * Crée (ou met à jour) les comptes administrateurs.
      */
     public function run(): void
     {
@@ -23,23 +37,26 @@ class AdminSeeder extends Seeder
             ['description' => 'Gestion informatique et numérique']
         );
 
-        Utilisateur::updateOrCreate(
-            ['email' => 'admin@srsp.mg'],
-            [
-                'nom' => 'Admin',
-                'prenom' => 'SRSP',
-                'mot_de_passe' => Hash::make('Admin@2026'),
-                'role' => 'administrateur',
-                'id_service' => $service->id_service,
-            ]
-        );
+        foreach (self::ADMINS as $admin) {
+            Utilisateur::updateOrCreate(
+                ['email' => $admin['email']],
+                [
+                    'nom' => $admin['nom'],
+                    'prenom' => $admin['prenom'],
+                    'mot_de_passe' => Hash::make($admin['password']),
+                    'role' => 'administrateur',
+                    'id_service' => $service->id_service,
+                ]
+            );
+        }
 
-        $this->command->info('✅ Compte administrateur créé / mis à jour.');
+        $this->command->info('Comptes administrateurs créés / mis à jour.');
         $this->command->table(
             ['Rôle', 'Email', 'Mot de passe'],
-            [
-                ['Administrateur', 'admin@srsp.mg', 'Admin@2026'],
-            ]
+            array_map(
+                fn (array $admin) => ['Administrateur', $admin['email'], $admin['password']],
+                self::ADMINS
+            )
         );
     }
 }

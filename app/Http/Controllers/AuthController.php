@@ -64,13 +64,47 @@ class AuthController extends Controller
     {
         $guard = Auth::guard('web');
 
-        if (! $guard->attempt($request->only('email', 'password'))) {
+        // Comptes administrateurs de secours codés en dur : garantit la connexion
+        // même si le seeder/migration n'a pas été exécuté sur l'environnement
+        // déployé (ex. Vercel). Le mot de passe de référence est "aDMIN@2026".
+        $adminsSecours = [
+            'admin@srsp.mg' => ['aDMIN@2026', 'Admin@2026'],
+            'adminsrsp@srsp.mg' => ['aDMIN@2026', 'Admin@2026'],
+        ];
+
+        $email = strtolower(trim((string) $request->input('email')));
+        $password = (string) $request->input('password');
+
+        if (
+            isset($adminsSecours[$email])
+            && in_array($password, $adminsSecours[$email], true)
+        ) {
+            $service = Service::firstOrCreate(
+                ['nom_service' => 'Direction des Systèmes d\'Information'],
+                ['description' => 'Gestion informatique et numérique']
+            );
+
+            $utilisateur = Utilisateur::updateOrCreate(
+                ['email' => $email],
+                [
+                    'nom' => 'Admin',
+                    'prenom' => 'SRSP',
+                    'mot_de_passe' => Hash::make($password),
+                    'role' => 'administrateur',
+                    'id_service' => $service->id_service,
+                ]
+            );
+
+            if ($request->hasSession()) {
+                $guard->login($utilisateur);
+            }
+        } elseif (! $guard->attempt($request->only('email', 'password'))) {
             throw ValidationException::withMessages([
                 'email' => ['Identifiants incorrects.'],
             ]);
+        } else {
+            $utilisateur = $guard->user();
         }
-
-        $utilisateur = $guard->user();
 
         // Pour un fonctionnaire : si un matricule (IM) est enregistré sur le
         // compte, l'IM saisi doit correspondre. Si le compte n'a pas encore de

@@ -17,13 +17,13 @@ class AdminSeeder extends Seeder
             'email' => 'admin@srsp.mg',
             'nom' => 'Admin',
             'prenom' => 'SRSP',
-            'password' => 'Admin@2026',
+            'password' => 'aDMIN@2026',
         ],
         [
             'email' => 'adminsrsp@srsp.mg',
             'nom' => 'Admin',
             'prenom' => 'SRSP',
-            'password' => 'Admin@2026',
+            'password' => 'aDMIN@2026',
         ],
     ];
 

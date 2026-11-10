@@ -46,6 +46,21 @@ class ConversationController extends Controller
     {
         $conversation = $this->conversationDeLUtilisateur($request, $id);
 
+        // Historique récent (hors message courant) pour garder le contexte
+        // et éviter les réponses répétitives.
+        $historique = $conversation->messages()
+            ->orderByDesc('date_envoi')
+            ->orderByDesc('id_message')
+            ->limit(10)
+            ->get()
+            ->reverse()
+            ->map(fn (Message $message) => [
+                'role' => $message->expediteur === 'utilisateur' ? 'user' : 'agent',
+                'text' => $message->contenu,
+            ])
+            ->values()
+            ->all();
+
         // 1. Enregistrer le message de l'utilisateur
         Message::create([
             'contenu' => $request->validated('contenu'),
@@ -53,8 +68,8 @@ class ConversationController extends Controller
             'id_conversation' => $conversation->id_conversation,
         ]);
 
-        // 2. Appeler l'agent d'assistance (LLM)
-        $reponseIa = $this->assistant->repondre($request->validated('contenu'));
+        // 2. Appeler l'agent d'assistance (LLM) avec le contexte de la conversation
+        $reponseIa = $this->assistant->repondre($request->validated('contenu'), $historique);
 
         $agentAssistance = AgentIa::where('type_agent', 'assistance')->first();
 

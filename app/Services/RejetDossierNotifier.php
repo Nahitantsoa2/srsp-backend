@@ -82,25 +82,30 @@ class RejetDossierNotifier
 
         $message = $this->message($dossier);
 
-        // Évite d'avertir deux fois pour le même dossier (même fonctionnaire,
-        // même message) — ex. import puis connexion.
-        $dejaNotifie = Notification::where('id_utilisateur', $fonctionnaire->id_utilisateur)
-            ->where('message', $message)
-            ->exists();
+        // La notification in-app est créée immédiatement. L'anti-doublon porte
+        // sur le message, mais l'email est réessayé tant qu'il n'a pas réussi
+        // (ex. import puis connexion, ou SMTP indisponible au premier essai).
+        $notification = Notification::firstOrCreate(
+            [
+                'id_utilisateur' => $fonctionnaire->id_utilisateur,
+                'message' => $message,
+            ],
+            [
+                'lu' => false,
+                'email_envoye' => false,
+            ]
+        );
 
-        if ($dejaNotifie) {
-            return false;
+        $action = $notification->wasRecentlyCreated;
+
+        if (! $notification->email_envoye) {
+            if ($this->envoyerEmail($dossier, $fonctionnaire)) {
+                $notification->forceFill(['email_envoye' => true])->save();
+                $action = true;
+            }
         }
 
-        Notification::create([
-            'id_utilisateur' => $fonctionnaire->id_utilisateur,
-            'message' => $message,
-            'lu' => false,
-        ]);
-
-        $this->envoyerEmail($dossier, $fonctionnaire);
-
-        return true;
+        return $action;
     }
 
     private function fonctionnaireConcerne(SuiviDossier $dossier): ?Utilisateur
@@ -126,13 +131,22 @@ class RejetDossierNotifier
         return $message;
     }
 
-    private function envoyerEmail(SuiviDossier $dossier, Utilisateur $fonctionnaire): void
+    private function envoyerEmail(SuiviDossier $dossier, Utilisateur $fonctionnaire): bool
     {
+        $ref = $dossier->ref_dossier ?: ($dossier->ref_be ?: '—');
+
         try {
             Mail::to($fonctionnaire->email)->send(new DossierRejete($dossier, $fonctionnaire));
+
+            return true;
         } catch (\Throwable $e) {
             // Un échec d'envoi d'email ne doit pas faire échouer l'import.
-            Log::warning("Échec de l'email de rejet pour {$fonctionnaire->email} : {$e->getMessage()}");
+            // La notification garde email_envoye = false pour un nouvel essai.
+            Log::error(
+                "Échec de l'email de rejet (dossier {$ref}) pour {$fonctionnaire->email} : {$e->getMessage()}"
+            );
+
+            return false;
         }
     }
 }

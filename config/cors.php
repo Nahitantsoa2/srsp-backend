@@ -26,9 +26,14 @@ return [
         )
     ))),
 
-    'allowed_origins_patterns' => [
+    'allowed_origins_patterns' => array_values(array_filter([
         '#^https://.*\.vercel\.app$#',
-    ],
+        // En developpement, le port de Vite peut changer (5173, 5174, ...).
+        // On autorise donc tout port local uniquement hors production.
+        env('APP_ENV', 'production') === 'local'
+            ? '#^https?://(localhost|127\.0\.0\.1)(:\d+)?$#'
+            : null,
+    ])),
 
     'allowed_headers' => ['*'],
 

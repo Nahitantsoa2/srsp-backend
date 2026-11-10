@@ -36,6 +36,7 @@ class NotificationTest extends TestCase
             $table->unsignedBigInteger('id_utilisateur');
             $table->text('message');
             $table->boolean('lu')->default(false);
+            $table->boolean('email_envoye')->default(false);
             $table->timestamp('date_envoi')->useCurrent();
         });
     }

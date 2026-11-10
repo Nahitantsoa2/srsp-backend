@@ -15,12 +15,14 @@ class Notification extends Model
     protected $fillable = [
         'message',
         'lu',
+        'email_envoye',
         'id_utilisateur',
     ];
 
     protected $casts = [
         'date_envoi' => 'datetime',
         'lu' => 'boolean',
+        'email_envoye' => 'boolean',
     ];
 
     public function utilisateur()

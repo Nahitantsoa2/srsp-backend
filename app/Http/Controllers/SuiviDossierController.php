@@ -113,7 +113,7 @@ class SuiviDossierController extends Controller
         return response()->json([
             'message' => "Import terminé : {$a} dossier(s) ajouté(s), {$i} déjà présent(s)".
                 ($v > 0 ? ", {$v} ligne(s) sans IM ignorée(s)" : '').'.'.
-                ($notifies > 0 ? " {$notifies} fonctionnaire(s) notifié(s) par email pour rejet." : ''),
+                ($notifies > 0 ? " {$notifies} dossier(s) rejeté(s) : notification in-app et email." : ''),
             'ajoutes' => $a,
             'ignores' => $i,
             'invalides' => $v,

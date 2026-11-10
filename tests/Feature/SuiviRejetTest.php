@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Mail\DossierRejete;
+use App\Models\Notification;
 use App\Models\SuiviDossier;
 use App\Models\Utilisateur;
 use App\Services\RejetDossierNotifier;
@@ -54,6 +55,7 @@ class SuiviRejetTest extends TestCase
             $table->unsignedBigInteger('id_utilisateur');
             $table->text('message');
             $table->boolean('lu')->default(false);
+            $table->boolean('email_envoye')->default(false);
             $table->timestamp('date_envoi')->nullable();
         });
 
@@ -203,6 +205,25 @@ class SuiviRejetTest extends TestCase
         $this->assertSame(0, $notifier->notifierPourFonctionnaire($fonctionnaire));
         $this->assertDatabaseCount('notification', 1);
         Mail::assertSent(DossierRejete::class, 1);
+    }
+
+    public function test_notifier_reessaie_email_tant_qu_il_n_a_pas_reussi(): void
+    {
+        Mail::fake();
+        $this->creerFonctionnaire();
+
+        $notifier = app(RejetDossierNotifier::class);
+        $this->assertSame(1, $notifier->notifier([$this->dossier()]));
+
+        $notification = Notification::firstOrFail();
+        $this->assertTrue($notification->email_envoye);
+
+        // Simule un premier envoi échoué : l'email doit être retenté.
+        $notification->forceFill(['email_envoye' => false])->save();
+
+        $this->assertSame(1, $notifier->notifier([$this->dossier()]));
+        $this->assertTrue($notification->fresh()->email_envoye);
+        Mail::assertSent(DossierRejete::class, 2);
     }
 
     public function test_le_mailable_du_rejet_rend_les_infos_du_dossier(): void
